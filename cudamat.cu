@@ -464,6 +464,30 @@ extern int add_row_vec(cudamat* mat, cudamat* vec, cudamat* target) {
     return 0;
 }
 
+extern int add_row_mult(cudamat* mat, cudamat* vec, cudamat* target, float mult) {
+    unsigned int h = mat->size[0],
+                 w = mat->size[1];
+
+    if (!mat->on_device || !vec->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans)
+        return ERROR_TRANSPOSED;
+
+    if (mat->size[1] != vec->size[1] || vec->size[0] != 1 ||
+        mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    kAddRowMult<<<NUM_VECTOR_OP_BLOCKS(w*h),NUM_VECTOR_OP_THREADS_PER_BLOCK(w*h)>>>(mat->data_device, vec->data_device, target->data_device, mult, w, h);
+
+    cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 extern int mult_by_col_vec(cudamat* mat, cudamat* vec, cudamat* target) {
     unsigned int h = mat->size[0],
                  w = mat->size[1];

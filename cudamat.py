@@ -34,6 +34,7 @@ _cudamat.fill_with_randn.restype = ct.c_int
 _cudamat.add_col_vec.restype = ct.c_int
 _cudamat.add_col_mult.restype = ct.c_int
 _cudamat.add_row_vec.restype = ct.c_int
+_cudamat.add_row_mult.restype = ct.c_int
 _cudamat.mult_by_col_vec.restype = ct.c_int
 _cudamat.mult_by_row_vec.restype = ct.c_int
 _cudamat.divide_by_col_vec.restype = ct.c_int
@@ -496,7 +497,22 @@ class CUDAMatrix(object):
             raise generate_exception(err_code)
 
         return target
-        
+
+    def add_row_mult(self, vec, mult, target = None):
+        """
+        Add vector vec to every row of the matrix. If a target is provided,
+        it is used to store the result instead of self.
+        """
+
+        if not target:
+            target = self
+
+        err_code = _cudamat.add_row_mult(self.p_mat, vec.p_mat, target.p_mat, ct.c_float(mult))
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+
     def mult_by_col(self, vec, target = None):
         """
         Multiply vector vec into every column of the matrix. If a target is
