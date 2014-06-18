@@ -67,6 +67,8 @@ _cudamat.apply_lgamma.restype = ct.c_int
 _cudamat.apply_sqrt.restype = ct.c_int
 _cudamat.apply_pow.restype = ct.c_int
 _cudamat.apply_pow_matrix.restype = ct.c_int
+_cudamat.add_pow.restype = ct.c_int
+_cudamat.mult_pow.restype = ct.c_int
 _cudamat.reciprocal.restype = ct.c_int
 
 _cudamat.add_elementwise.restype = ct.c_int
@@ -1334,6 +1336,43 @@ def sqrt(mat, target = None):
         target = mat
 
     err_code = _cudamat.apply_sqrt(mat.p_mat, target.p_mat)
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def add_pow(mat1, mat2, p, alpha=1.0, target = None):
+    """
+    Compute the 'p'th power of each element of the matrix mat2 and add to
+    alpha*mat1 where alpha is a scalar.
+    """
+    if not target:
+        target = mat1
+
+    if isinstance(p, (int, float)):
+        err_code = _cudamat.add_pow(mat1.p_mat, mat2.p_mat, ct.c_float(p), 
+                                      ct.c_float(alpha), target.p_mat)
+    else:
+        raise ValueError, "Value must be of type int, or float."
+
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
+def mult_pow(mat1, mat2, p, target = None):
+    """
+    Compute the 'p'th power of each element of the matrix mat2 and mutliply 
+    elementwise by mat1.
+    """
+    if not target:
+        target = mat1
+
+    if isinstance(p, (int, float)):
+        err_code = _cudamat.mult_pow(mat1.p_mat, mat2.p_mat, ct.c_float(p), target.p_mat)
+    else:
+        raise ValueError, "Value must be of type int, or float."
+
     if err_code:
         raise generate_exception(err_code)
 

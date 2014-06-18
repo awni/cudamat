@@ -1165,6 +1165,49 @@ extern int apply_sqrt(cudamat* mat, cudamat* target) {
     return 0;
 }
 
+extern int add_pow(cudamat* mat1, cudamat* mat2, float pow, 
+                   float alpha, cudamat* target) {
+    unsigned int len = mat1->size[0] * mat2->size[1];
+
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->size[0] != target->size[0] || mat1->size[1] != target->size[1]
+        || mat1->size[0] != mat2->size[0] || mat1->size[1] != mat2->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    kAddPow<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat1->data_device, mat2->data_device, pow, alpha, target->data_device, len);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
+extern int mult_pow(cudamat* mat1, cudamat* mat2, float pow, cudamat* target) {
+    unsigned int len = mat1->size[0] * mat2->size[1];
+
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->size[0] != target->size[0] || mat1->size[1] != target->size[1]
+        || mat1->size[0] != mat2->size[0] || mat1->size[1] != mat2->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    kMultPow<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat1->data_device, mat2->data_device, pow, target->data_device, len);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 extern int apply_pow(cudamat* mat, float pow, cudamat* target) {
     unsigned int len = mat->size[0] * mat->size[1];
 

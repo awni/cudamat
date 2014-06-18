@@ -579,6 +579,24 @@ __global__ void kPowMatrix(float* mat, float* pow, float* target, unsigned int l
     }
 }
 
+__global__ void kAddPow(float* mat1, float* mat2, float pow, float alpha, float* target, unsigned int len) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int numThreads = blockDim.x * gridDim.x;
+
+    for (unsigned int i = idx; i < len; i += numThreads) {
+        target[i] = alpha * mat1[i] + powf(mat2[i], pow);
+    }
+}
+
+__global__ void kMultPow(float* mat1, float* mat2, float pow, float* target, unsigned int len) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int numThreads = blockDim.x * gridDim.x;
+
+    for (unsigned int i = idx; i < len; i += numThreads) {
+        target[i] = mat1[i] * powf(mat2[i], pow);
+    }
+}
+
 __global__ void kReciprocal(float* mat, float* target, unsigned int len) {
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned int numThreads = blockDim.x * gridDim.x;
