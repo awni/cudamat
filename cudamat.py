@@ -1187,19 +1187,15 @@ def dot(m1, m2, target = None, beta = 0., alpha = 1.):
 
     return target
 
-def mvdot(m, v, target = None, beta = 0., alpha = 1.):
+def mvdot(m, v, target, beta = 0., alpha = 1.):
     """
     Find the dot product between matrix m and vecotr v and store in target:
     target = beta*target + alpha*(m v)
-    If no target is given, it will be created automatically, but not
-    initialized -- so beta should be left at its default value zero.
+    Must specify target.
     """
 
-    if not target:
-        m = _cudamat.get_leading_dimension(m.p_mat)
-        target = empty((m, 1))
-
     err_code = _cudamat.mvdot(m.p_mat, v.p_mat, target.p_mat, ct.c_float(beta), ct.c_float(alpha))
+
     if err_code:
         raise generate_exception(err_code)
 
