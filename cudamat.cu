@@ -1327,6 +1327,33 @@ extern float vdot(cudamat* mat1, cudamat* mat2, int* err_code) {
     }
 }
 
+/* Note assumes stride is always 1 for vectors */
+extern int mvdot(cudamat* mat, cudamat* v, cudamat* target, float beta, float alpha) {
+    if (!mat->on_device || !v->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (get_leading_dimension(mat) != get_leading_dimension(target) ||
+        get_nonleading_dimension(v) != get_nonleading_dimension(target) ||
+        get_nonleading_dimension(mat) != get_leading_dimension(v)) {
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    }
+    int m = get_leading_dimension(mat),
+        n = get_nonleading_dimension(mat);
+
+    cublasSgemv(get_transpose_char(mat), m, n,
+                alpha, mat->data_device, mat->size[0],
+                v->data_device, 1,
+                beta, target->data_device, 1);
+
+    if (check_cublas_error())
+        return CUBLAS_ERROR;
+
+    if (SYNC_THREADS) 
+        cudaThreadSynchronize();
+
+    return 0;
+}
+
 /* Perform the operation mat1 = mat1 + alpha * mat2. mat1 and mat2 must
    have the same transposedness. */
 extern int add_mult(cudamat* mat1, cudamat* mat2, float alpha) {

@@ -84,6 +84,7 @@ _cudamat.euclid_norm.restype = ct.c_float
 _cudamat.manhattan_norm.restype = ct.c_float
 _cudamat.selectRows.restype = ct.c_int
 _cudamat.setSelectedRows.restype = ct.c_int
+_cudamat.mvdot.restype = ct.c_int
 _cudamat.vdot.restype = ct.c_float
 _cudamat.dot.restype = ct.c_int
 
@@ -1185,6 +1186,25 @@ def dot(m1, m2, target = None, beta = 0., alpha = 1.):
         raise generate_exception(err_code)
 
     return target
+
+def mvdot(m, v, target = None, beta = 0., alpha = 1.):
+    """
+    Find the dot product between matrix m and vecotr v and store in target:
+    target = beta*target + alpha*(m v)
+    If no target is given, it will be created automatically, but not
+    initialized -- so beta should be left at its default value zero.
+    """
+
+    if not target:
+        m = _cudamat.get_leading_dimension(m.p_mat)
+        target = empty((m, 1))
+
+    err_code = _cudamat.mvdot(m.p_mat, v.p_mat, target.p_mat, ct.c_float(beta), ct.c_float(alpha))
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
 
 def vdot(m1, m2):
     """
