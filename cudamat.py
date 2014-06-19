@@ -21,6 +21,7 @@ _cudamat.copy_to_host.restype = ct.c_int
 _cudamat.allocate_device_memory = ct.c_int
 _cudamat.copy_to_device.restype = ct.c_int
 _cudamat.copy_on_device.restype = ct.c_int
+_cudamat.copy_on_device_cols.restype = ct.c_int
 _cudamat.free_device_memory.restype = ct.c_int
 
 _cudamat.get_slice.restype = ct.c_int
@@ -50,6 +51,7 @@ _cudamat.minimum.restype = ct.c_int
 _cudamat.minimum_scalar.restype = ct.c_int
 _cudamat.maximum.restype = ct.c_int
 _cudamat.maximum_scalar.restype = ct.c_int
+_cudamat.maximum_scalar_slice.restype = ct.c_int
 _cudamat.min_by_axis.restype = ct.c_int
 _cudamat.max_by_axis.restype = ct.c_int
 _cudamat.argmin_by_axis.restype = ct.c_int
@@ -75,6 +77,7 @@ _cudamat.add_elementwise.restype = ct.c_int
 _cudamat.subtract_elementwise.restype = ct.c_int
 _cudamat.divide_elementwise.restype = ct.c_int
 _cudamat.mult_elementwise.restype = ct.c_int
+_cudamat.mult_elementwise_slice.restype = ct.c_int
 _cudamat.assign_scalar.restype = ct.c_int
 _cudamat.mult_by_scalar.restype = ct.c_int
 _cudamat.divide_by_scalar.restype = ct.c_int
@@ -85,6 +88,7 @@ _cudamat.manhattan_norm.restype = ct.c_float
 _cudamat.selectRows.restype = ct.c_int
 _cudamat.setSelectedRows.restype = ct.c_int
 _cudamat.mvdot.restype = ct.c_int
+_cudamat.mvdot_col_slice.restype = ct.c_int
 _cudamat.vdot.restype = ct.c_float
 _cudamat.dot.restype = ct.c_int
 
@@ -381,6 +385,22 @@ class CUDAMatrix(object):
             return target
         else:
             return col_slice
+
+    def set_single_col(self, col, mat, colm):
+        """
+        Assign the contents of colm of mat to the col of self.
+        """
+
+        if isinstance(mat, CUDAMatrix):
+            err_code = _cudamat.copy_on_device_cols(mat.p_mat, colm, self.p_mat, col)
+        else:
+            raise ValueError, "Assigned value must be of type CUDAMatrix."
+            
+        if err_code:
+            raise generate_exception(err_code)
+
+        return self
+
 
     def set_col_slice(self, first_col, last_col, mat):
         """
@@ -695,17 +715,21 @@ class CUDAMatrix(object):
 
         return target
 
-    def maximum(self, val, target = None):
+    def maximum(self, val, col=-1, target = None):
         """
-        Perform the element-wise operation target = max(self, val), where
-        val can be a matrix or a scalar.
+        Perform the element-wise operation target = max(self, val), where val
+        can be a matrix or a scalar. If col >= 0, operates only over col of
+        self and into col of target.
         """
 
         if not target:
             target = self
 
         if isinstance(val, (int, float)):
-            err_code = _cudamat.maximum_scalar(self.p_mat, ct.c_float(val), target.p_mat)
+            if col>=0:
+                err_code = _cudamat.maximum_scalar_slice(self.p_mat, ct.c_float(val), col, target.p_mat)
+            else:
+                err_code = _cudamat.maximum_scalar(self.p_mat, ct.c_float(val), target.p_mat)
         else:
             err_code = _cudamat.maximum(self.p_mat, val.p_mat, target.p_mat)
 
@@ -965,6 +989,22 @@ class CUDAMatrix(object):
 
         return target
 
+    def mult_slice(self, cola, val, colb):
+        """Multiply cola of self by colb of val. """ 
+
+        target = self
+
+        if isinstance(val, CUDAMatrix):
+            err_code = _cudamat.mult_elementwise_slice(self.p_mat, cola, val.p_mat, 
+                                                       colb, target.p_mat)
+        else:
+            raise ValueError, "Value must be of type CUDAMatrix."
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+
     def mult(self, val, target = None):
         """Multiply self by val, where val can be a scalar or a CUDAMatrix with
         the same dimensions as self. """
@@ -1186,6 +1226,23 @@ def dot(m1, m2, target = None, beta = 0., alpha = 1.):
         raise generate_exception(err_code)
 
     return target
+
+def mvdot_col_slice(m, v, source_col, target, target_col, beta = 0., alpha = 1.):
+    """
+    Find the dot product between matrix m and source_col of v and store 
+    in target_col of target:
+    target[t] = beta*target + alpha*(m v[j])
+    Must specify target.
+    """
+
+    err_code = _cudamat.mvdot_col_slice(m.p_mat, v.p_mat, source_col, target.p_mat, 
+                            target_col, ct.c_float(beta), ct.c_float(alpha))
+
+    if err_code:
+        raise generate_exception(err_code)
+
+    return target
+
 
 def mvdot(m, v, target, beta = 0., alpha = 1.):
     """

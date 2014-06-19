@@ -158,6 +158,22 @@ extern int copy_to_device(cudamat* mat) {
     return 0;
 }
 
+extern int copy_on_device_cols(cudamat* mat1, int col1, cudamat* mat2, int col2) {
+    int len = mat1->size[0];
+
+    if (mat1->size[0] != mat2->size[0])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    int num_rows = mat1->size[0];
+
+    cublasScopy(len, mat1->data_device + num_rows*col1, 1, mat2->data_device + num_rows*col2, 1);
+
+    if (check_cublas_error())
+        return CUBLAS_ERROR;
+    else
+        return 0;
+}
+
 extern int copy_on_device(cudamat* mat1, cudamat* mat2) {
     int len = mat1->size[0]*mat1->size[1];
 
@@ -797,6 +813,30 @@ extern int maximum(cudamat* mat1, cudamat* mat2, cudamat* target) {
     return 0;
 }
 
+extern int maximum_scalar_slice(cudamat* mat, float val, int col, cudamat* target) {
+    int len = mat->size[0];
+
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0]) 
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    int num_rows = mat->size[0];
+
+    kMaximumScalar<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat->data_device + num_rows * col, val, target->data_device + num_rows * col, len);
+
+    cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 extern int maximum_scalar(cudamat* mat, float val, cudamat* target) {
     int len = mat->size[0]*mat->size[1];
 
@@ -1328,6 +1368,38 @@ extern float vdot(cudamat* mat1, cudamat* mat2, int* err_code) {
 }
 
 /* Note assumes stride is always 1 for vectors */
+extern int mvdot_col_slice(cudamat* mat, cudamat* v, int source_col, 
+                           cudamat* target, int target_col, float beta, 
+                           float alpha) {
+    if (!mat->on_device || !v->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (get_leading_dimension(mat) != get_leading_dimension(target) ||
+        get_nonleading_dimension(v) != get_nonleading_dimension(target) ||
+        get_nonleading_dimension(mat) != get_leading_dimension(v)) {
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+    }
+    int m = get_leading_dimension(mat),
+        n = get_nonleading_dimension(mat);
+
+    int num_rows_v = v->size[0];
+    int num_rows_target = target->size[0];
+
+    cublasSgemv(get_transpose_char(mat), m, n,
+                alpha, mat->data_device, mat->size[0],
+                v->data_device + source_col * num_rows_v, 1,
+                beta, target->data_device + target_col * num_rows_target, 1);
+
+    if (check_cublas_error())
+        return CUBLAS_ERROR;
+
+    if (SYNC_THREADS) 
+        cudaThreadSynchronize();
+
+    return 0;
+}
+
+/* Note assumes stride is always 1 for vectors */
 extern int mvdot(cudamat* mat, cudamat* v, cudamat* target, float beta, float alpha) {
     if (!mat->on_device || !v->on_device || !target->on_device)
         return ERROR_NOT_ON_DEVICE;
@@ -1455,6 +1527,34 @@ extern int divide_elementwise(cudamat* mat1, cudamat* mat2, cudamat* target) {
 
     return 0;
 }
+
+/* Elementwise multiplication of columns of 2 matrices */
+extern int mult_elementwise_slice(cudamat* mat1, int cola, cudamat* mat2, 
+                                  int colb, cudamat* target) {
+    int len = mat1->size[0];
+
+    if (!mat1->on_device || !mat2->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat1->is_trans != mat2->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat1->size[0] != mat2->size[0] || mat1->size[0] != target->size[0])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    int num_rows = mat1->size[0];
+
+    kMult<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat1->data_device + num_rows * cola, mat2->data_device + num_rows * colb, target->data_device + num_rows*cola, len);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 
 /* Elementwise multiplication of 2 matrices */
 extern int mult_elementwise(cudamat* mat1, cudamat* mat2, cudamat* target) {
