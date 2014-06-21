@@ -1375,7 +1375,6 @@ extern int mvdot_col_slice(cudamat* mat, cudamat* v, int source_col,
         return ERROR_NOT_ON_DEVICE;
 
     if (get_leading_dimension(mat) != get_leading_dimension(target) ||
-        get_nonleading_dimension(v) != get_nonleading_dimension(target) ||
         get_nonleading_dimension(mat) != get_leading_dimension(v)) {
         return ERROR_INCOMPATIBLE_DIMENSIONS;
     }
