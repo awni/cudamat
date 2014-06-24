@@ -59,6 +59,7 @@ _cudamat.argmax_by_axis.restype = ct.c_int
 _cudamat.sign.restype = ct.c_int
 _cudamat.apply_sigmoid.restype = ct.c_int
 _cudamat.apply_tanh.restype = ct.c_int
+_cudamat.apply_tanh_slice.restype = ct.c_int
 _cudamat.apply_soft_threshold.restype = ct.c_int
 _cudamat.apply_abs.restype = ct.c_int
 _cudamat.apply_log_1_plus_exp.restype = ct.c_int
@@ -1286,7 +1287,7 @@ def sigmoid(mat, target = None):
 
     return target
 
-def tanh(mat, target = None):
+def tanh(mat, col=-1, target = None):
     """
     Apply the tanh to each element of the matrix mat.
     """
@@ -1294,7 +1295,11 @@ def tanh(mat, target = None):
     if not target:
         target = mat
 
-    err_code = _cudamat.apply_tanh(mat.p_mat, target.p_mat)
+    if col>=0:
+        err_code = _cudamat.apply_tanh_slice(mat.p_mat, col, target.p_mat)
+    else:
+        err_code = _cudamat.apply_tanh(mat.p_mat, target.p_mat)
+
     if err_code:
         raise generate_exception(err_code)
 

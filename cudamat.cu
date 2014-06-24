@@ -1026,6 +1026,28 @@ extern int apply_sigmoid(cudamat* mat, cudamat* target) {
     return 0;
 }
 
+extern int apply_tanh_slice(cudamat* mat, int col, cudamat* target) {
+    unsigned int len = mat->size[0];
+
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->size[0] != target->size[0])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    unsigned int num_rows = mat->size[0];
+
+    kApplyTanh<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat->data_device + num_rows * col, target->data_device + num_rows * col, len);
+
+    if (SYNC_THREADS)
+        cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 extern int apply_tanh(cudamat* mat, cudamat* target) {
     unsigned int len = mat->size[0] * mat->size[1];
 
