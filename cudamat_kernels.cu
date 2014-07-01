@@ -457,7 +457,7 @@ __global__ void kWithin(float* mat, float min, float max, float* target, unsigne
     const unsigned int numThreads = blockDim.x * gridDim.x;
 
     for (unsigned int i = idx; i < len; i += numThreads) {
-        if (mat[i] >= min && mat[i] <= max) {
+        if (mat[i] > min && mat[i] < max) {
             target[i] = 1.;
         } else {
             target[i] = 0.;

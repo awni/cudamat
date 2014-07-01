@@ -840,7 +840,7 @@ class CUDAMatrix(object):
 
     def within(self, min, max, target = None):
         """
-        Returns elementwise (min <= self[i,j] <= max) ? 1 : 0.
+        Returns elementwise (min < self[i,j] < max) ? 1 : 0.
         """
 
         if not target:
