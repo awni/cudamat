@@ -56,6 +56,7 @@ __global__ void kArgMinColumnwise(float* mat, float* target, unsigned int width,
 __global__ void kArgMinRowwise(float* mat, float* target, unsigned int width, unsigned int height);
 __global__ void kArgMaxColumnwise(float* mat, float* target, unsigned int width, unsigned int height);
 __global__ void kArgMaxRowwise(float* mat, float* target, unsigned int width, unsigned int height);
+__global__ void kWithin(float* mat, float min, float max, float* target, unsigned int len);
 __global__ void kSign(float* mat, float* target, unsigned int len);
 __global__ void kApplySigmoid(float* mat, float* target, unsigned int len);
 __global__ void kApplyTanh(float* mat, float* target, unsigned int len);

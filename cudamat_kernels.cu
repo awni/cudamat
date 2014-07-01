@@ -452,6 +452,19 @@ __global__ void kArgMaxRowwise(float* mat, float* target, unsigned int width, un
     }
 }
 
+__global__ void kWithin(float* mat, float min, float max, float* target, unsigned int len) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int numThreads = blockDim.x * gridDim.x;
+
+    for (unsigned int i = idx; i < len; i += numThreads) {
+        if (mat[i] >= min && mat[i] <= max) {
+            target[i] = 1.;
+        } else {
+            target[i] = 0.;
+        }
+    }
+}
+
 __global__ void kSign(float* mat, float* target, unsigned int len) {
     const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned int numThreads = blockDim.x * gridDim.x;

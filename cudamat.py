@@ -49,6 +49,7 @@ _cudamat.equals.restype = ct.c_int
 _cudamat.equals_scalar.restype = ct.c_int
 _cudamat.minimum.restype = ct.c_int
 _cudamat.minimum_scalar.restype = ct.c_int
+_cudamat.minimum_scalar_slice.restype = ct.c_int
 _cudamat.maximum.restype = ct.c_int
 _cudamat.maximum_scalar.restype = ct.c_int
 _cudamat.maximum_scalar_slice.restype = ct.c_int
@@ -56,6 +57,7 @@ _cudamat.min_by_axis.restype = ct.c_int
 _cudamat.max_by_axis.restype = ct.c_int
 _cudamat.argmin_by_axis.restype = ct.c_int
 _cudamat.argmax_by_axis.restype = ct.c_int
+_cudamat.within.restype = ct.c_int
 _cudamat.sign.restype = ct.c_int
 _cudamat.apply_sigmoid.restype = ct.c_int
 _cudamat.apply_tanh.restype = ct.c_int
@@ -697,7 +699,7 @@ class CUDAMatrix(object):
 
         return target
 
-    def minimum(self, val, target = None):
+    def minimum(self, val, col=-1, target = None):
         """
         Perform the element-wise operation target = min(self, val), where
         val can be a matrix or a scalar.
@@ -707,7 +709,10 @@ class CUDAMatrix(object):
             target = self
 
         if isinstance(val, (int, float)):
-            err_code = _cudamat.minimum_scalar(self.p_mat, ct.c_float(val), target.p_mat)
+            if col>=0:
+                err_code = _cudamat.minimum_scalar_slice(self.p_mat, ct.c_float(val), col, target.p_mat)
+            else:
+                err_code = _cudamat.minimum_scalar(self.p_mat, ct.c_float(val), target.p_mat)
         else:
             err_code = _cudamat.minimum(self.p_mat, val.p_mat, target.p_mat)
 
@@ -832,6 +837,22 @@ class CUDAMatrix(object):
             raise generate_exception(err_code)
 
         return target
+
+    def within(self, min, max, target = None):
+        """
+        Returns elementwise (min <= self[i,j] <= max) ? 1 : 0.
+        """
+
+        if not target:
+            target = empty((self.mat.size[0], self.mat.size[1]))
+
+        err_code = _cudamat.within(self.p_mat, ct.c_float(min), ct.c_float(max), target.p_mat)
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+
 
     def sign(self, target = None):
         """
