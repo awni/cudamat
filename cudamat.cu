@@ -883,6 +883,52 @@ extern int maximum_scalar(cudamat* mat, float val, cudamat* target) {
     return 0;
 }
 
+extern int minmax_scalar(cudamat* mat, float val1, float val2, cudamat* target) {
+    int len = mat->size[0]*mat->size[1];
+
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0] || mat->size[1] != target->size[1])
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    kMinmaxScalar<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat->data_device, val1, val2, target->data_device, len);
+
+    cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
+extern int minmax_scalar_slice(cudamat* mat, float val1, float val2, int col, cudamat* target) {
+    int len = mat->size[0];
+
+    if (!mat->on_device || !target->on_device)
+        return ERROR_NOT_ON_DEVICE;
+
+    if (mat->is_trans != target->is_trans)
+        return ERROR_TRANSPOSEDNESS;
+
+    if (mat->size[0] != target->size[0]) 
+        return ERROR_INCOMPATIBLE_DIMENSIONS;
+
+    int num_rows = mat->size[0];
+
+    kMinmaxScalar<<<NUM_VECTOR_OP_BLOCKS(len),NUM_VECTOR_OP_THREADS_PER_BLOCK(len)>>>(mat->data_device + num_rows * col, val1, val2, target->data_device + num_rows * col, len);
+
+    cudaThreadSynchronize();
+
+    if (checkCUDAError())
+        return CUDA_ERROR;
+
+    return 0;
+}
+
 extern int min_by_axis(cudamat* mat, cudamat* target, int axis) {
     unsigned int h = mat->size[0],
                  w = mat->size[1];

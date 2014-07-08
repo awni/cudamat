@@ -204,6 +204,15 @@ __global__ void kMaximumScalar(float* mat, float val, float* target, unsigned in
     }
 }
 
+__global__ void kMinmaxScalar(float* mat, float val1, float val2, float* target, unsigned int len) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int numThreads = blockDim.x * gridDim.x;
+
+    for (unsigned int i = idx; i < len; i += numThreads) {
+        target[i] = fminf(fmaxf(mat[i], val1), val2);
+    }
+}
+
 __global__ void kMinColumnwise(float* mat, float* target, unsigned int width, unsigned int height) {
     __shared__ float min_vals[32];
     float cur_min = FLT_MAX;

@@ -53,6 +53,8 @@ _cudamat.minimum_scalar_slice.restype = ct.c_int
 _cudamat.maximum.restype = ct.c_int
 _cudamat.maximum_scalar.restype = ct.c_int
 _cudamat.maximum_scalar_slice.restype = ct.c_int
+_cudamat.minmax_scalar.restype = ct.c_int
+_cudamat.minmax_scalar_slice.restype = ct.c_int
 _cudamat.min_by_axis.restype = ct.c_int
 _cudamat.max_by_axis.restype = ct.c_int
 _cudamat.argmin_by_axis.restype = ct.c_int
@@ -738,6 +740,27 @@ class CUDAMatrix(object):
                 err_code = _cudamat.maximum_scalar(self.p_mat, ct.c_float(val), target.p_mat)
         else:
             err_code = _cudamat.maximum(self.p_mat, val.p_mat, target.p_mat)
+
+        if err_code:
+            raise generate_exception(err_code)
+
+        return target
+
+    def minmax(self, val1, val2, col=-1, target = None):
+        """
+        Perform the element-wise operation target = min(max(self, val1),val2), 
+        where val1 and val2 are scalars.
+        """
+
+        if not target:
+            target = self
+
+        if col>=0:
+            err_code = _cudamat.minmax_scalar_slice(self.p_mat, ct.c_float(val1), 
+                        ct.c_float(val2), col, target.p_mat)
+        else:
+            err_code = _cudamat.minmax_scalar(self.p_mat, ct.c_float(val1), 
+                        ct.c_float(val2), target.p_mat)
 
         if err_code:
             raise generate_exception(err_code)
