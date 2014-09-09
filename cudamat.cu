@@ -1523,8 +1523,8 @@ extern int mvdot(cudamat* mat, cudamat* v, cudamat* target, float beta, float al
         get_nonleading_dimension(mat) != get_leading_dimension(v)) {
         return ERROR_INCOMPATIBLE_DIMENSIONS;
     }
-    int m = get_leading_dimension(mat),
-        n = get_nonleading_dimension(mat);
+    int m = mat->size[0],
+        n = mat->size[1];
 
     cublasSgemv(get_transpose_char(mat), m, n,
                 alpha, mat->data_device, mat->size[0],
